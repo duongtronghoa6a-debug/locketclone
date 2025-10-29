@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:background="@color/black_900"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Top centered header: user name, friends button, friend count, sign out -->
+    <LinearLayout
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="36dp">
+
+        <TextView
+            android:id="@+id/tvUserName"
+            android:text=""
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/btnFriends"
+            android:text="Bạn bè"
+            android:layout_marginTop="12dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/tvFriendCount"
+            android:text=""
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            android:layout_marginTop="14dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/btnSignOut"
+            android:text="Đăng xuất"
+            android:layout_marginTop="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- center content placeholder -->
+    <TextView
+        android:layout_gravity="center"
+        android:text="Màn hình chính"
+        android:textColor="@color/gray_600"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+</FrameLayout>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:background="@color/black_900"
+    android:padding="16dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <!-- Big title centered -->
+    <TextView
+        android:id="@+id/tvTitle"
+        android:text="3 / 20 người bạn"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        android:textSize="24sp"
+        android:gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <!-- add friend input -->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <EditText
+            android:id="@+id/etAdd"
+            android:hint="Thêm một người bạn mới (email)"
+            android:backgroundTint="@color/gray_600"
+            android:textColor="@color/white"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"/>
+
+        <Button
+            android:id="@+id/btnAdd"
+            android:text="Thêm"
+            android:layout_marginLeft="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
+    <!-- section title -->
+    <TextView
+        android:text="Bạn bè của bạn"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        android:layout_marginTop="16dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <!-- friends list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvFriends"
+        android:layout_marginTop="8dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="120dp"/>
+
+    <!-- expand/collapse button -->
+    <Button
+        android:id="@+id/btnToggle"
+        android:text="Xem thêm"
+        android:layout_gravity="center"
+        android:layout_marginTop="12dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+</LinearLayout>

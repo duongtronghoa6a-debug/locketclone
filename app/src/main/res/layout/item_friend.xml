@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:padding="12dp"
+    android:layout_width="match_parent"
+    android:layout_height="72dp"
+    android:background="@color/gray_800">
+
+    <ImageView
+        android:id="@+id/ivAvatar"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_centerVertical="true"
+        android:src="@drawable/ic_person_circle"/>
+
+    <TextView
+        android:id="@+id/tvName"
+        android:layout_toRightOf="@id/ivAvatar"
+        android:layout_marginLeft="12dp"
+        android:layout_centerVertical="true"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <LinearLayout
+        android:id="@+id/buttonContainer"
+        android:orientation="horizontal"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/btnPrimary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Primary"
+            android:backgroundTint="@color/gray_600"
+            android:textColor="@color/white"/>
+
+        <Button
+            android:id="@+id/btnSecondary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="8dp"
+            android:text="Secondary"
+            android:backgroundTint="@color/gray_600"
+            android:textColor="@color/white"/>
+    </LinearLayout>
+</RelativeLayout>

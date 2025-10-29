@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "315539119265",
+    "project_id": "locketclone-f84b2",
+    "storage_bucket": "locketclone-f84b2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:315539119265:android:9c43beacdbbe32ca0ba4e0",
+        "android_client_info": {
+          "package_name": "com.example.locketclone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4VPj_EpHiXkbQZy5qQILYgbXOQCKWdb4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
