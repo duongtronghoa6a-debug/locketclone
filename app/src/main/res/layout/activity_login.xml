@@ -19,6 +19,7 @@
     <EditText
         android:id="@+id/etName"
         android:hint="Tên hiển thị"
+        android:textColorHint="@color/hint_text"
         android:backgroundTint="@color/gray_600"
         android:textColor="@color/white"
         android:layout_width="match_parent"
@@ -27,6 +28,7 @@
     <EditText
         android:id="@+id/etEmail"
         android:hint="Email"
+        android:textColorHint="@color/hint_text"
         android:inputType="textEmailAddress"
         android:layout_marginTop="8dp"
         android:backgroundTint="@color/gray_600"
@@ -37,6 +39,7 @@
     <EditText
         android:id="@+id/etPassword"
         android:hint="Mật khẩu"
+        android:textColorHint="@color/hint_text"
         android:inputType="textPassword"
         android:layout_marginTop="8dp"
         android:backgroundTint="@color/gray_600"

@@ -1,70 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:background="@color/black_900"
-    android:padding="16dp"
+    android:id="@+id/friends_bottom_sheet_root"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#121212">
 
-    <!-- Big title centered -->
-    <TextView
-        android:id="@+id/tvTitle"
-        android:text="3 / 20 người bạn"
-        android:textColor="@color/white"
-        android:textStyle="bold"
-        android:textSize="24sp"
-        android:gravity="center"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
-
-    <!-- add friend input -->
+    <!-- Hàng nhập email (tìm kiếm người mới) -->
     <LinearLayout
-        android:orientation="horizontal"
-        android:layout_marginTop="12dp"
+        android:id="@+id/add_friend_row"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="8dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
 
         <EditText
             android:id="@+id/etAdd"
-            android:hint="Thêm một người bạn mới (email)"
-            android:backgroundTint="@color/gray_600"
-            android:textColor="@color/white"
-            android:layout_weight="1"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"/>
+            android:layout_weight="1"
+            android:layout_height="48dp"
+            android:minHeight="48dp"
+            android:hint="Nhập email để gửi yêu cầu"
+            android:inputType="textEmailAddress"
+            android:textColorHint="#BDBDBD"
+            android:textColor="#FFFFFF"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:backgroundTint="?attr/colorControlNormal"
+            android:importantForAccessibility="yes" />
 
         <Button
             android:id="@+id/btnAdd"
-            android:text="Thêm"
-            android:layout_marginLeft="8dp"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:layout_height="48dp"
+            android:minHeight="48dp"
+            android:minWidth="64dp"
+            android:layout_marginStart="8dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:text="Gửi"
+            android:visibility="visible"
+            android:backgroundTint="#1E88E5"
+            android:textColor="#FFFFFF" />
     </LinearLayout>
 
-    <!-- section title -->
+    <!-- Incoming requests header (hiển thị nếu có request) -->
     <TextView
-        android:text="Bạn bè của bạn"
-        android:textColor="@color/white"
-        android:textStyle="bold"
-        android:layout_marginTop="16dp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
-
-    <!-- friends list -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvFriends"
-        android:layout_marginTop="8dp"
+        android:id="@+id/tvIncomingHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="120dp"/>
+        android:text="Lời mời kết bạn"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:paddingTop="8dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone" />
 
-    <!-- expand/collapse button -->
+    <!-- RecyclerView cho incoming requests -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvIncoming"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:nestedScrollingEnabled="false" />
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="8dp" />
+
+    <!-- Friends header -->
+    <TextView
+        android:id="@+id/tvFriendsHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Bạn bè"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone" />
+
+    <!-- Toggle / friends list -->
     <Button
         android:id="@+id/btnToggle"
-        android:text="Xem thêm"
-        android:layout_gravity="center"
-        android:layout_marginTop="12dp"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:text="Xem thêm"
+        android:backgroundTint="#263238"
+        android:textColor="#FFFFFF" />
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvFriends"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:nestedScrollingEnabled="false" />
 </LinearLayout>
