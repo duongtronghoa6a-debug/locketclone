@@ -13,8 +13,7 @@
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="16dp"
-        android:background="@color/handle_bar"
-        android:radius="2dp" />
+        android:background="@drawable/handle_bar_background" />
 
     <!-- 2. Title "Bạn bè" -->
     <TextView
@@ -36,7 +35,7 @@
         android:layout_height="48dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="@color/divider"
+        android:background="@drawable/search_box_background"
         android:layout_marginLeft="16dp"
         android:layout_marginRight="16dp"
         android:layout_marginBottom="24dp"
@@ -48,8 +47,7 @@
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@android:drawable/ic_menu_search"
-            android:tint="@color/gray_600" />
+            android:src="@android:drawable/ic_menu_search" />
 
         <TextView
             android:layout_width="0dp"

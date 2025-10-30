@@ -2,6 +2,7 @@ package com.example.locketclone.ui;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -97,7 +98,7 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
 
         // Search box click opens SearchActivity
         searchBox.setOnClickListener(v1 -> {
-            android.content.Intent intent = new android.content.Intent(getContext(), com.example.locketclone.SearchActivity.class);
+            Intent intent = new Intent(getContext(), com.example.locketclone.SearchActivity.class);
             startActivity(intent);
         });
 
