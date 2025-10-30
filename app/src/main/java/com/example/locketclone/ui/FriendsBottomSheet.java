@@ -1,336 +1,546 @@
 package com.example.locketclone.ui;
 
-import android.app.AlertDialog;
-import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.Toast;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.locketclone.FirestoreFriendAdapter;
 import com.example.locketclone.R;
+import com.example.locketclone.SearchActivity;
 import com.example.locketclone.model.User;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.EventListener;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
-import com.google.firebase.firestore.WriteBatch;
-
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class FriendsBottomSheet extends BottomSheetDialogFragment {
 
-    private static final String TAG = "FriendsBottomSheet";
+    private RecyclerView rvFriendsList;
+    private RecyclerView rvFriendRequests;
+    private RecyclerView rvBlockedUsers;
 
-    RecyclerView rvIncoming, rvFriends;
-    FirestoreFriendAdapter friendsAdapter, incomingAdapter, sentAdapter;
-    List<User> friendsList = new ArrayList<>();
-    List<User> incomingList = new ArrayList<>();
-    List<User> sentList = new ArrayList<>();
-    Button btnToggle;
-    EditText etAdd;
-    Button btnAdd;
-    TextView tvIncomingHeader, tvFriendsHeader;
+    private LinearLayout searchBox;
+    private LinearLayout btnSeeMore;
+    private LinearLayout friendRequestSection;
+    private LinearLayout blockedUsersSection;
 
-    FirebaseFirestore db;
-    FirebaseAuth auth;
-    String myUid;
-    boolean expanded = false;
+    private TextView tvSeeMore;
+    private TextView tvTitle;
+    private TextView tvBlockedCount;
 
-    public static FriendsBottomSheet newInstance() {
-        return new FriendsBottomSheet();
-    }
+    private FirestoreFriendAdapter friendAdapter;
+    private FirestoreFriendAdapter requestAdapter;
+    private FirestoreFriendAdapter blockedAdapter;
+
+    private List<User> allFriends = new ArrayList<>();
+    private List<User> displayedFriends = new ArrayList<>();
+    private List<User> friendRequests = new ArrayList<>();
+    private List<User> blockedUsers = new ArrayList<>();
+
+    private boolean isExpanded = false;
+    private static final int MAX_INITIAL_FRIENDS = 3;
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        View v = inflater.inflate(R.layout.fragment_friends_bottom_sheet, container, false);
-        rvIncoming = v.findViewById(R.id.rvIncoming);
-        rvFriends = v.findViewById(R.id.rvFriends);
-        btnToggle = v.findViewById(R.id.btnToggle);
-        etAdd = v.findViewById(R.id.etAdd);
-        btnAdd = v.findViewById(R.id.btnAdd);
-        tvIncomingHeader = v.findViewById(R.id.tvIncomingHeader);
-        tvFriendsHeader = v.findViewById(R.id.tvFriendsHeader);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_friends_bottom_sheet, container, false);
 
-        db = FirebaseFirestore.getInstance();
-        auth = FirebaseAuth.getInstance();
-        FirebaseUser u = auth.getCurrentUser();
-        if (u == null) {
-            Toast.makeText(getContext(), "Bạn chưa đăng nhập", Toast.LENGTH_SHORT).show();
-            dismiss();
-            return v;
-        }
-        myUid = u.getUid();
+        // Khởi tạo views
+        rvFriendsList = view.findViewById(R.id.rvFriendsList);
+        rvFriendRequests = view.findViewById(R.id.rvFriendRequests);
+        rvBlockedUsers = view.findViewById(R.id.rvBlockedUsers);
 
-        friendsAdapter = new FirestoreFriendAdapter(friendsList, getContext(), FirestoreFriendAdapter.Mode.FRIENDS, newCallback());
-        incomingAdapter = new FirestoreFriendAdapter(incomingList, getContext(), FirestoreFriendAdapter.Mode.INCOMING, newCallback());
-        sentAdapter = new FirestoreFriendAdapter(sentList, getContext(), FirestoreFriendAdapter.Mode.SENT, newCallback());
+        searchBox = view.findViewById(R.id.searchBox);
+        btnSeeMore = view.findViewById(R.id.btnSeeMore);
+        friendRequestSection = view.findViewById(R.id.friendRequestSection);
+        blockedUsersSection = view.findViewById(R.id.blockedUsersSection);
 
-        // Bind adapters
-        rvIncoming.setAdapter(incomingAdapter);
-        rvIncoming.setLayoutManager(new LinearLayoutManager(getContext()));
-        rvFriends.setAdapter(friendsAdapter);
-        rvFriends.setLayoutManager(new LinearLayoutManager(getContext()));
+        tvSeeMore = view.findViewById(R.id.tvSeeMore);
+        tvTitle = view.findViewById(R.id.tvTitle);
+        tvBlockedCount = view.findViewById(R.id.tvBlockedCount);
 
-        // toggle cycles through friend list expansion (keeps incoming visible on top)
-        btnToggle.setOnClickListener(bt -> {
-            expanded = !expanded;
-            btnToggle.setText(expanded ? "Rút gọn" : "Xem thêm");
-            refreshShownFriends();
+        // Setup RecyclerView cho danh sách bạn bè
+        rvFriendsList.setLayoutManager(new LinearLayoutManager(getContext()));
+        friendAdapter = new FirestoreFriendAdapter(
+                displayedFriends,
+                getContext(),
+                FirestoreFriendAdapter.Mode.FRIENDS,
+                createFriendsCallback()
+        );
+        rvFriendsList.setAdapter(friendAdapter);
+
+        // Setup RecyclerView cho yêu cầu kết bạn
+        rvFriendRequests.setLayoutManager(new LinearLayoutManager(getContext()));
+        requestAdapter = new FirestoreFriendAdapter(
+                friendRequests,
+                getContext(),
+                FirestoreFriendAdapter.Mode.INCOMING,
+                createRequestsCallback()
+        );
+        rvFriendRequests.setAdapter(requestAdapter);
+
+        // Setup RecyclerView cho danh sách đã chặn
+        rvBlockedUsers.setLayoutManager(new LinearLayoutManager(getContext()));
+        blockedAdapter = new FirestoreFriendAdapter(
+                blockedUsers,
+                getContext(),
+                FirestoreFriendAdapter.Mode.BLOCKED,
+                createBlockedCallback()
+        );
+        rvBlockedUsers.setAdapter(blockedAdapter);
+
+        searchBox.setOnClickListener(v -> {
+            Intent intent = new Intent(getContext(), SearchActivity.class);
+            startActivity(intent);
         });
 
-        btnAdd.setOnClickListener(b -> {
-            String email = etAdd.getText().toString().trim();
-            if (TextUtils.isEmpty(email)) {
-                Toast.makeText(getContext(), "Nhập email để gửi yêu cầu", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            sendFriendRequestByEmail(email);
-        });
+        btnSeeMore.setOnClickListener(v -> toggleFriendsList());
 
-        // attach snapshot listener to my user doc
-        db.collection("users").document(myUid)
-                .addSnapshotListener(new EventListener<DocumentSnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable DocumentSnapshot snapshot, @Nullable FirebaseFirestoreException e) {
-                        if (e != null) {
-                            Log.e(TAG, "snapshot listener error", e);
-                            return;
-                        }
-                        if (snapshot == null || !snapshot.exists()) {
-                            return;
-                        }
+        // Load dữ liệu
+        loadFriends();
+        loadFriendRequests();
+        loadBlockedUsers();
 
-                        Log.d(TAG, "snapshot data: " + snapshot.getData());
-
-                        // parse arrays (may be null)
-                        List<String> friends = (List<String>) snapshot.get("friends");
-                        List<String> incoming = (List<String>) snapshot.get("incomingRequests");
-                        List<String> sent = (List<String>) snapshot.get("sentRequests");
-
-                        loadUsersByUids(friends, friendsList, friendsAdapter);
-                        loadUsersByUids(incoming, incomingList, incomingAdapter);
-                        loadUsersByUids(sent, sentList, sentAdapter);
-
-                        // show/hide incoming section (keep it above friends list)
-                        if (incoming == null || incoming.isEmpty()) {
-                            tvIncomingHeader.setVisibility(View.GONE);
-                            rvIncoming.setVisibility(View.GONE);
-                        } else {
-                            tvIncomingHeader.setVisibility(View.VISIBLE);
-                            rvIncoming.setVisibility(View.VISIBLE);
-                        }
-
-                        // show/hide friends header
-                        if (friends == null || friends.isEmpty()) {
-                            tvFriendsHeader.setVisibility(View.GONE);
-                        } else {
-                            tvFriendsHeader.setVisibility(View.VISIBLE);
-                        }
-
-                        refreshShownFriends();
-                    }
-                });
-
-        return v;
+        return view;
     }
 
-    private FirestoreFriendAdapter.Callback newCallback() {
+    // ========== CALLBACKS ==========
+
+    private FirestoreFriendAdapter.Callback createFriendsCallback() {
         return new FirestoreFriendAdapter.Callback() {
-            @Override
-            public void onAccept(User user) {
-                Log.d(TAG, "onAccept clicked for uid=" + user.uid);
-                acceptRequest(user.uid);
-            }
-
-            @Override
-            public void onDecline(User user) {
-                Log.d(TAG, "onDecline clicked for uid=" + user.uid);
-                declineRequest(user.uid);
-            }
-
-            @Override
-            public void onCancel(User user) { cancelSentRequest(user.uid); }
-
-            @Override
-            public void onRemove(User user) { confirmUnfriend(user.uid, user.displayName != null ? user.displayName : user.email); }
-
-            @Override
-            public void onSendRequest(User user) { sendFriendRequest(user.uid); }
-
-            @Override
-            public void onBlock(User user) { blockUser(user.uid); }
+            @Override public void onAccept(User user) { }
+            @Override public void onDecline(User user) { }
+            @Override public void onCancel(User user) { }
+            @Override public void onRemove(User user) { removeFriend(user); }
+            @Override public void onSendRequest(User user) { }
+            @Override public void onBlock(User user) { blockUser(user); }
+            @Override public void onUnblock(User user) { }
         };
     }
 
-    private void refreshShownFriends() {
-        // show top 3 or full depending on expanded
-        List<User> shown = new ArrayList<>();
-        if (!expanded && friendsList.size() > 3) {
-            shown.addAll(friendsList.subList(0, 3));
+    private FirestoreFriendAdapter.Callback createRequestsCallback() {
+        return new FirestoreFriendAdapter.Callback() {
+            @Override public void onAccept(User user) { acceptFriendRequest(user); }
+            @Override public void onDecline(User user) { declineFriendRequest(user); }
+            @Override public void onCancel(User user) { }
+            @Override public void onRemove(User user) { }
+            @Override public void onSendRequest(User user) { }
+            @Override public void onBlock(User user) { }
+            @Override public void onUnblock(User user) { }
+        };
+    }
+
+    private FirestoreFriendAdapter.Callback createBlockedCallback() {
+        return new FirestoreFriendAdapter.Callback() {
+            @Override public void onAccept(User user) { }
+            @Override public void onDecline(User user) { }
+            @Override public void onCancel(User user) { }
+            @Override public void onRemove(User user) { }
+            @Override public void onSendRequest(User user) { }
+            @Override public void onBlock(User user) { }
+            @Override public void onUnblock(User user) {
+                unblockUser(user);
+            }
+        };
+    }
+
+    // ========== LOAD DATA ==========
+
+    private void loadFriends() {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        Log.d("FriendsBottomSheet", "Loading friends for user: " + currentUserId);
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("friends")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    Log.d("FriendsBottomSheet", "Friends loaded: " + queryDocumentSnapshots.size());
+                    allFriends.clear();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        User friend = document.toObject(User.class);
+                        Log.d("FriendsBottomSheet", "Friend: " + friend.displayName);
+                        allFriends.add(friend);
+                    }
+                    updateDisplayedFriends();
+                    updateTitle();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FriendsBottomSheet", "Error loading friends", e);
+                    Toast.makeText(getContext(), "Lỗi tải danh sách bạn bè: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+    }
+
+    private void loadFriendRequests() {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("friendRequests")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    friendRequests.clear();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        User user = document.toObject(User.class);
+                        friendRequests.add(user);
+                    }
+
+                    if (!friendRequests.isEmpty()) {
+                        friendRequestSection.setVisibility(View.VISIBLE);
+                        requestAdapter.notifyDataSetChanged();
+                    } else {
+                        friendRequestSection.setVisibility(View.GONE);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getContext(), "Lỗi tải yêu cầu kết bạn: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+    }
+
+    private void loadBlockedUsers() {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("blockedUsers")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    blockedUsers.clear();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        User user = document.toObject(User.class);
+                        blockedUsers.add(user);
+                    }
+
+                    if (!blockedUsers.isEmpty()) {
+                        blockedUsersSection.setVisibility(View.VISIBLE);
+                        tvBlockedCount.setText(String.valueOf(blockedUsers.size()));
+                        blockedAdapter.notifyDataSetChanged();
+                    } else {
+                        blockedUsersSection.setVisibility(View.GONE);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FriendsBottomSheet", "Error loading blocked users", e);
+                });
+    }
+
+    private void updateDisplayedFriends() {
+        displayedFriends.clear();
+
+        int displayCount = isExpanded ? allFriends.size() : Math.min(MAX_INITIAL_FRIENDS, allFriends.size());
+
+        for (int i = 0; i < displayCount; i++) {
+            displayedFriends.add(allFriends.get(i));
+        }
+
+        friendAdapter.notifyDataSetChanged();
+
+        if (allFriends.size() > MAX_INITIAL_FRIENDS) {
+            btnSeeMore.setVisibility(View.VISIBLE);
+            updateSeeMoreText();
         } else {
-            shown.addAll(friendsList);
-        }
-        friendsAdapter.updateItems(shown);
-    }
-
-    private void loadUsersByUids(List<String> uids, List<User> targetList, FirestoreFriendAdapter adapter) {
-        targetList.clear();
-        adapter.updateItems(new ArrayList<>()); // clear UI
-        if (uids == null || uids.isEmpty()) return;
-        final int[] remaining = {uids.size()};
-        List<User> temp = new ArrayList<>();
-        for (String fid : uids) {
-            db.collection("users").document(fid).get().addOnSuccessListener(ds -> {
-                if (ds != null && ds.exists()) {
-                    User usr = ds.toObject(User.class);
-                    if (usr != null) {
-                        usr.uid = ds.getId();
-                        temp.add(usr);
-                    }
-                }
-                remaining[0]--;
-                if (remaining[0] <= 0) {
-                    // push results to adapter and targetList
-                    targetList.clear();
-                    targetList.addAll(temp);
-                    adapter.updateItems(new ArrayList<>(targetList));
-                    Log.d(TAG, "Loaded users for adapter, count=" + targetList.size());
-                }
-            }).addOnFailureListener(e -> {
-                remaining[0]--;
-                if (remaining[0] <= 0) {
-                    targetList.clear();
-                    targetList.addAll(temp);
-                    adapter.updateItems(new ArrayList<>(targetList));
-                }
-            });
+            btnSeeMore.setVisibility(View.GONE);
         }
     }
 
-    private void cancelSentRequest(String targetUid) {
-        db.collection("users").document(myUid)
-                .update("sentRequests", FieldValue.arrayRemove(targetUid))
-                .addOnSuccessListener(aVoid -> db.collection("users").document(targetUid)
-                        .update("incomingRequests", FieldValue.arrayRemove(myUid))
-                        .addOnSuccessListener(v -> Toast.makeText(getContext(), "Đã huỷ yêu cầu", Toast.LENGTH_SHORT).show())
-                        .addOnFailureListener(e -> Toast.makeText(getContext(), "Huỷ thất bại", Toast.LENGTH_SHORT).show()))
-                .addOnFailureListener(e -> Toast.makeText(getContext(), "Huỷ thất bại", Toast.LENGTH_SHORT).show());
+    private void toggleFriendsList() {
+        isExpanded = !isExpanded;
+        updateDisplayedFriends();
     }
 
-    private void declineRequest(String fromUid) {
-        Log.d(TAG, "declineRequest fromUid=" + fromUid + " myUid=" + myUid);
-        WriteBatch batch = db.batch();
-        batch.update(db.collection("users").document(myUid), "incomingRequests", FieldValue.arrayRemove(fromUid));
-        batch.update(db.collection("users").document(fromUid), "sentRequests", FieldValue.arrayRemove(myUid));
-        batch.commit()
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "declineRequest: batch commit success");
-                    Toast.makeText(getContext(), "Đã từ chối", Toast.LENGTH_SHORT).show();
-                    refreshShownFriends();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "declineRequest failed", e);
-                    Toast.makeText(getContext(), "Từ chối thất bại: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+    private void updateSeeMoreText() {
+        if (isExpanded) {
+            tvSeeMore.setText("Thu gọn");
+        } else {
+            int remainingCount = allFriends.size() - MAX_INITIAL_FRIENDS;
+            tvSeeMore.setText("Xem thêm (" + remainingCount + ")");
+        }
     }
 
-    private void acceptRequest(String fromUid) {
-        Log.d(TAG, "acceptRequest fromUid=" + fromUid + " myUid=" + myUid);
-        WriteBatch batch = db.batch();
-        batch.update(db.collection("users").document(myUid), "incomingRequests", FieldValue.arrayRemove(fromUid));
-        batch.update(db.collection("users").document(fromUid), "sentRequests", FieldValue.arrayRemove(myUid));
-        batch.update(db.collection("users").document(myUid), "friends", FieldValue.arrayUnion(fromUid));
-        batch.update(db.collection("users").document(fromUid), "friends", FieldValue.arrayUnion(myUid));
-        batch.commit()
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "acceptRequest: batch commit success");
-                    Toast.makeText(getContext(), "Đã chấp nhận", Toast.LENGTH_SHORT).show();
-                    refreshShownFriends();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "acceptRequest failed", e);
-                    Toast.makeText(getContext(), "Chấp nhận thất bại: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+    private void updateTitle() {
+        int count = allFriends.size();
+        if (count == 0) {
+            tvTitle.setText("Bạn bè");
+        } else {
+            tvTitle.setText(count + " bạn bè");
+        }
     }
 
-    // Confirm unfriend before performing the actual unfriend
-    private void confirmUnfriend(String friendUid, String friendLabel) {
-        new AlertDialog.Builder(getContext())
-                .setTitle("Xác nhận")
-                .setMessage("Bạn có chắc muốn huỷ kết bạn với " + (friendLabel != null ? friendLabel : "người này") + "?")
-                .setPositiveButton("Huỷ kết bạn", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        performUnfriend(friendUid);
+    // ========== FRIEND REQUEST ACTIONS ==========
+
+    private void acceptFriendRequest(User user) {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        Log.d("FriendsBottomSheet", "Accepting friend request from: " + user.uid);
+
+        db.collection("users").document(currentUserId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    User myUser = documentSnapshot.toObject(User.class);
+                    if (myUser == null) {
+                        Toast.makeText(getContext(), "Không tìm thấy thông tin người dùng", Toast.LENGTH_SHORT).show();
+                        return;
                     }
+
+                    db.collection("users")
+                            .document(currentUserId)
+                            .collection("friends")
+                            .document(user.uid)
+                            .set(user)
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d("FriendsBottomSheet", "Added friend to my list");
+
+                                db.collection("users")
+                                        .document(user.uid)
+                                        .collection("friends")
+                                        .document(currentUserId)
+                                        .set(myUser)
+                                        .addOnSuccessListener(aVoid1 -> {
+                                            Log.d("FriendsBottomSheet", "Added me to friend's list");
+
+                                            db.collection("users")
+                                                    .document(currentUserId)
+                                                    .collection("friendRequests")
+                                                    .document(user.uid)
+                                                    .delete()
+                                                    .addOnSuccessListener(aVoid2 -> {
+                                                        Log.d("FriendsBottomSheet", "Deleted from my friendRequests");
+
+                                                        db.collection("users")
+                                                                .document(user.uid)
+                                                                .collection("sentRequests")
+                                                                .document(currentUserId)
+                                                                .delete()
+                                                                .addOnSuccessListener(aVoid3 -> {
+                                                                    Log.d("FriendsBottomSheet", "Deleted from friend's sentRequests");
+
+                                                                    Toast.makeText(getContext(), "Đã chấp nhận lời mời kết bạn", Toast.LENGTH_SHORT).show();
+                                                                    loadFriends();
+                                                                    loadFriendRequests();
+                                                                })
+                                                                .addOnFailureListener(e -> {
+                                                                    Log.e("FriendsBottomSheet", "Error deleting sentRequests", e);
+                                                                });
+                                                    });
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.e("FriendsBottomSheet", "Error adding to friend's list", e);
+                                            Toast.makeText(getContext(), "Lỗi thêm bạn bè: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                        });
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e("FriendsBottomSheet", "Error adding friend", e);
+                                Toast.makeText(getContext(), "Lỗi chấp nhận yêu cầu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FriendsBottomSheet", "Error getting user info", e);
+                    Toast.makeText(getContext(), "Lỗi lấy thông tin: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void declineFriendRequest(User user) {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        Log.d("FriendsBottomSheet", "Declining friend request from: " + user.uid);
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("friendRequests")
+                .document(user.uid)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("FriendsBottomSheet", "Deleted from my friendRequests");
+
+                    db.collection("users")
+                            .document(user.uid)
+                            .collection("sentRequests")
+                            .document(currentUserId)
+                            .delete()
+                            .addOnSuccessListener(aVoid1 -> {
+                                Log.d("FriendsBottomSheet", "Deleted from their sentRequests");
+                                Toast.makeText(getContext(), "Đã từ chối lời mời kết bạn", Toast.LENGTH_SHORT).show();
+                                loadFriendRequests();
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e("FriendsBottomSheet", "Error deleting sentRequests", e);
+                                Toast.makeText(getContext(), "Lỗi từ chối yêu cầu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FriendsBottomSheet", "Error declining request", e);
+                    Toast.makeText(getContext(), "Lỗi từ chối yêu cầu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    // ========== FRIEND MANAGEMENT ==========
+
+    private void removeFriend(User user) {
+        new android.app.AlertDialog.Builder(getContext())
+                .setTitle("Xóa bạn bè")
+                .setMessage("Bạn có chắc chắn muốn xóa " + user.displayName + " khỏi danh sách bạn bè?")
+                .setPositiveButton("Xóa", (dialog, which) -> {
+                    performRemoveFriend(user);
                 })
                 .setNegativeButton("Hủy", null)
                 .show();
     }
 
-    // actual unfriend logic (previous behavior preserved)
-    private void performUnfriend(String friendUid) {
-        db.collection("users").document(myUid)
-                .update("friends", FieldValue.arrayRemove(friendUid))
-                .addOnSuccessListener(aVoid -> db.collection("users").document(friendUid)
-                        .update("friends", FieldValue.arrayRemove(myUid))
-                        .addOnSuccessListener(v -> Toast.makeText(getContext(), "Đã huỷ kết bạn", Toast.LENGTH_SHORT).show())
-                        .addOnFailureListener(e -> Toast.makeText(getContext(), "Huỷ kết bạn thất bại (bên kia)", Toast.LENGTH_SHORT).show()))
-                .addOnFailureListener(e -> Toast.makeText(getContext(), "Huỷ kết bạn thất bại", Toast.LENGTH_SHORT).show());
+    private void performRemoveFriend(User user) {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("friends")
+                .document(user.uid)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("FriendsBottomSheet", "Removed friend from my list");
+
+                    db.collection("users")
+                            .document(user.uid)
+                            .collection("friends")
+                            .document(currentUserId)
+                            .delete()
+                            .addOnSuccessListener(aVoid1 -> {
+                                Log.d("FriendsBottomSheet", "Removed me from friend's list");
+                                Toast.makeText(getContext(), "Đã xóa bạn bè", Toast.LENGTH_SHORT).show();
+                                loadFriends();
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e("FriendsBottomSheet", "Error removing from friend's list", e);
+                                Toast.makeText(getContext(), "Lỗi xóa bạn bè: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FriendsBottomSheet", "Error removing friend", e);
+                    Toast.makeText(getContext(), "Lỗi xóa bạn bè: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 
-    // Compatibility shim: keep old method name 'unfriend' so existing calls compile
-    private void unfriend(String friendUid) {
-        performUnfriend(friendUid);
+    private void blockUser(User user) {
+        new android.app.AlertDialog.Builder(getContext())
+                .setTitle("Chặn người dùng")
+                .setMessage("Bạn có chắc chắn muốn chặn " + user.displayName + "?\n\nNgười này sẽ không thể gửi lời mời kết bạn cho bạn nữa.")
+                .setPositiveButton("Chặn", (dialog, which) -> {
+                    performBlockUser(user);
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
     }
 
-    private void blockUser(String uidToBlock) {
-        // preserve previous behavior: call unfriend (alias) to remove friendship if any
-        unfriend(uidToBlock);
+    private void performBlockUser(User user) {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        Log.d("FriendsBottomSheet", "Blocking user: " + user.uid);
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("friends")
+                .document(user.uid)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("FriendsBottomSheet", "Removed from my friends");
+                });
+
+        db.collection("users")
+                .document(user.uid)
+                .collection("friends")
+                .document(currentUserId)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("FriendsBottomSheet", "Removed from their friends");
+                });
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("friendRequests")
+                .document(user.uid)
+                .delete();
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("sentRequests")
+                .document(user.uid)
+                .delete();
+
+        db.collection("users")
+                .document(user.uid)
+                .collection("friendRequests")
+                .document(currentUserId)
+                .delete();
+
+        db.collection("users")
+                .document(user.uid)
+                .collection("sentRequests")
+                .document(currentUserId)
+                .delete();
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("blockedUsers")
+                .document(user.uid)
+                .set(user)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("FriendsBottomSheet", "Added to blockedUsers");
+                    Toast.makeText(getContext(), "Đã chặn " + user.displayName, Toast.LENGTH_SHORT).show();
+                    loadFriends();
+                    loadFriendRequests();
+                    loadBlockedUsers();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FriendsBottomSheet", "Error blocking user", e);
+                    Toast.makeText(getContext(), "Lỗi chặn người dùng: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 
-    // sendFriendRequest & sendFriendRequestByEmail: keep existing implementation
-    private void sendFriendRequest(String targetUid) {
-        if (targetUid.equals(myUid)) return;
-        db.collection("users").document(targetUid)
-                .update("incomingRequests", FieldValue.arrayUnion(myUid))
-                .addOnSuccessListener(aVoid -> db.collection("users").document(myUid)
-                        .update("sentRequests", FieldValue.arrayUnion(targetUid))
-                        .addOnSuccessListener(b -> Toast.makeText(getContext(), "Đã gửi yêu cầu", Toast.LENGTH_SHORT).show())
-                        .addOnFailureListener(e -> Toast.makeText(getContext(), "Lỗi cập nhật sentRequests", Toast.LENGTH_SHORT).show()))
-                .addOnFailureListener(e -> Toast.makeText(getContext(), "Lỗi gửi yêu cầu", Toast.LENGTH_SHORT).show());
+    private void unblockUser(User user) {
+        new android.app.AlertDialog.Builder(getContext())
+                .setTitle("Gỡ chặn")
+                .setMessage("Bạn có chắc chắn muốn gỡ chặn " + user.displayName + "?")
+                .setPositiveButton("Gỡ chặn", (dialog, which) -> {
+                    performUnblockUser(user);
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
     }
 
-    private void sendFriendRequestByEmail(String email) {
-        db.collection("users").whereEqualTo("email", email).get().addOnSuccessListener(qs -> {
-            if (qs == null || qs.isEmpty()) {
-                Toast.makeText(getContext(), "Không tìm thấy người dùng với email này", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            String targetUid = qs.getDocuments().get(0).getId();
-            sendFriendRequest(targetUid);
-        }).addOnFailureListener(e -> {
-            Toast.makeText(getContext(), "Lỗi tìm người dùng", Toast.LENGTH_SHORT).show();
-        });
+    private void performUnblockUser(User user) {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("blockedUsers")
+                .document(user.uid)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(getContext(), "Đã gỡ chặn " + user.displayName, Toast.LENGTH_SHORT).show();
+                    loadBlockedUsers();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getContext(), "Lỗi gỡ chặn: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 }

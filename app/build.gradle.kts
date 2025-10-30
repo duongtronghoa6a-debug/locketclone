@@ -35,7 +35,7 @@ android {
 }
 
 dependencies {
-    // Giữ nguyên dùng version catalog (libs.*) như file mẫu bạn đưa
+
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
@@ -50,4 +50,12 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.9.0")
+
+
+    // CircleImageView (cho avatar)
+    implementation ("de.hdodenhof:circleimageview:3.1.0")
+
+    // Glide (load image)
+    implementation ("com.github.bumptech.glide:glide:4.15.1")
+    annotationProcessor ("com.github.bumptech.glide:compiler:4.15.1")
 }

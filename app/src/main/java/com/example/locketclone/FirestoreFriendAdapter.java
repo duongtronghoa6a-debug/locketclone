@@ -23,9 +23,10 @@ import java.util.List;
  * - INCOMING: shows "Đồng ý" / "Từ chối" (onAccept/onDecline)
  * - SENT: shows "Huỷ" (onCancel)
  * - SEARCH: shows "Kết bạn" (onSendRequest)
+ * - BLOCKED: shows "Gỡ chặn" (onUnblock) - MỚI THÊM
  */
 public class FirestoreFriendAdapter extends RecyclerView.Adapter<FirestoreFriendAdapter.VH> {
-    public enum Mode { FRIENDS, INCOMING, SENT, SEARCH }
+    public enum Mode { FRIENDS, INCOMING, SENT, SEARCH, BLOCKED } // THÊM BLOCKED
 
     private final List<User> items;
     private final Context ctx;
@@ -39,6 +40,7 @@ public class FirestoreFriendAdapter extends RecyclerView.Adapter<FirestoreFriend
         void onRemove(User user);
         void onSendRequest(User user);
         void onBlock(User user);
+        void onUnblock(User user); // MỚI THÊM
     }
 
     public FirestoreFriendAdapter(List<User> list, Context ctx, Mode mode, Callback cb) {
@@ -104,12 +106,17 @@ public class FirestoreFriendAdapter extends RecyclerView.Adapter<FirestoreFriend
                 holder.btnPrimary.setText("Kết bạn");
                 holder.btnPrimary.setVisibility(View.VISIBLE);
                 holder.btnPrimary.setOnClickListener(v -> {
-                    new AlertDialog.Builder(ctx)
-                            .setTitle("Gửi yêu cầu")
-                            .setMessage("Gửi yêu cầu kết bạn tới " + (u.displayName != null ? u.displayName : u.email) + "?")
-                            .setPositiveButton("Gửi", (d,w) -> { if (callback!=null) callback.onSendRequest(u); })
-                            .setNegativeButton("Hủy", null)
-                            .show();
+                    if (callback != null) callback.onSendRequest(u);
+                });
+                break;
+            case BLOCKED: // MỚI THÊM
+                holder.btnPrimary.setText("Gỡ chặn");
+                holder.btnPrimary.setVisibility(View.VISIBLE);
+                holder.btnPrimary.setBackgroundTintList(
+                        android.content.res.ColorStateList.valueOf(0xFFFF5252) // Màu đỏ
+                );
+                holder.btnPrimary.setOnClickListener(v -> {
+                    if (callback != null) callback.onUnblock(u);
                 });
                 break;
         }
@@ -135,14 +142,12 @@ public class FirestoreFriendAdapter extends RecyclerView.Adapter<FirestoreFriend
         return items.size();
     }
 
-    // Public method to update adapter items from outside
     public void updateItems(List<User> newItems) {
         items.clear();
         if (newItems != null && !newItems.isEmpty()) items.addAll(newItems);
         notifyDataSetChanged();
     }
 
-    // Optional getter (read-only view)
     public List<User> getItems() {
         return items;
     }

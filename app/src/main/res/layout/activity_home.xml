@@ -1,54 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:background="@color/black_900"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#121212"
+    tools:context=".HomeActivity">
 
-    <!-- Top centered header: user name, friends button, friend count, sign out -->
+    <!-- Nút Log Out ở góc trên phải -->
+    <ImageButton
+        android:id="@+id/btnLogout"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_margin="16dp"
+        android:background="@drawable/logout_button_background"
+        android:src="@android:drawable/ic_lock_power_off"
+        android:contentDescription="Đăng xuất"
+        android:tint="#FFFFFF"
+        android:padding="12dp" />
+
+    <!-- Nút Bạn bè căn giữa màn hình -->
     <LinearLayout
-        android:orientation="vertical"
-        android:gravity="center_horizontal"
-        android:layout_width="match_parent"
+        android:id="@+id/btnFriends"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingTop="36dp">
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/friends_button_background"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:paddingTop="24dp"
+        android:paddingBottom="24dp"
+        android:clickable="true"
+        android:focusable="true">
 
         <TextView
-            android:id="@+id/tvUserName"
-            android:text=""
-            android:textColor="@color/white"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="👥"
+            android:textSize="48sp" />
+
+        <TextView
+            android:id="@+id/tvFriendsCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="... bạn bè"
             android:textSize="18sp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-
-        <Button
-            android:id="@+id/btnFriends"
-            android:text="Bạn bè"
-            android:layout_marginTop="12dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-
-        <TextView
-            android:id="@+id/tvFriendCount"
-            android:text=""
-            android:textColor="@color/white"
-            android:textSize="20sp"
-            android:layout_marginTop="14dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-
-        <Button
-            android:id="@+id/btnSignOut"
-            android:text="Đăng xuất"
-            android:layout_marginTop="10dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:textStyle="bold"
+            android:textColor="#FFFFFF" />
     </LinearLayout>
 
-    <!-- center content placeholder -->
-    <TextView
-        android:layout_gravity="center"
-        android:text="Màn hình chính"
-        android:textColor="@color/gray_600"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
-</FrameLayout>
+</RelativeLayout>
