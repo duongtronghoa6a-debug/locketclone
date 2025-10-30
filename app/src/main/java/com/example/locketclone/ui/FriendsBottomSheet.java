@@ -31,11 +31,13 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
 
     private RecyclerView rvFriendsList;
     private RecyclerView rvFriendRequests;
+    private RecyclerView rvSentRequests;  // MỚI THÊM
     private RecyclerView rvBlockedUsers;
 
     private LinearLayout searchBox;
     private LinearLayout btnSeeMore;
     private LinearLayout friendRequestSection;
+    private LinearLayout sentRequestsSection;  // MỚI THÊM
     private LinearLayout blockedUsersSection;
 
     private TextView tvSeeMore;
@@ -44,11 +46,13 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
 
     private FirestoreFriendAdapter friendAdapter;
     private FirestoreFriendAdapter requestAdapter;
+    private FirestoreFriendAdapter sentAdapter;  // MỚI THÊM
     private FirestoreFriendAdapter blockedAdapter;
 
     private List<User> allFriends = new ArrayList<>();
     private List<User> displayedFriends = new ArrayList<>();
     private List<User> friendRequests = new ArrayList<>();
+    private List<User> sentRequests = new ArrayList<>();  // MỚI THÊM
     private List<User> blockedUsers = new ArrayList<>();
 
     private boolean isExpanded = false;
@@ -62,11 +66,13 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
         // Khởi tạo views
         rvFriendsList = view.findViewById(R.id.rvFriendsList);
         rvFriendRequests = view.findViewById(R.id.rvFriendRequests);
+        rvSentRequests = view.findViewById(R.id.rvSentRequests);  // MỚI THÊM
         rvBlockedUsers = view.findViewById(R.id.rvBlockedUsers);
 
         searchBox = view.findViewById(R.id.searchBox);
         btnSeeMore = view.findViewById(R.id.btnSeeMore);
         friendRequestSection = view.findViewById(R.id.friendRequestSection);
+        sentRequestsSection = view.findViewById(R.id.sentRequestsSection);  // MỚI THÊM
         blockedUsersSection = view.findViewById(R.id.blockedUsersSection);
 
         tvSeeMore = view.findViewById(R.id.tvSeeMore);
@@ -93,6 +99,16 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
         );
         rvFriendRequests.setAdapter(requestAdapter);
 
+        // Setup RecyclerView cho yêu cầu đã gửi - MỚI THÊM
+        rvSentRequests.setLayoutManager(new LinearLayoutManager(getContext()));
+        sentAdapter = new FirestoreFriendAdapter(
+                sentRequests,
+                getContext(),
+                FirestoreFriendAdapter.Mode.SENT,
+                createSentCallback()
+        );
+        rvSentRequests.setAdapter(sentAdapter);
+
         // Setup RecyclerView cho danh sách đã chặn
         rvBlockedUsers.setLayoutManager(new LinearLayoutManager(getContext()));
         blockedAdapter = new FirestoreFriendAdapter(
@@ -113,6 +129,7 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
         // Load dữ liệu
         loadFriends();
         loadFriendRequests();
+        loadSentRequests();  // MỚI THÊM
         loadBlockedUsers();
 
         return view;
@@ -144,6 +161,19 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
         };
     }
 
+    // MỚI THÊM: Callback cho Sent Requests
+    private FirestoreFriendAdapter.Callback createSentCallback() {
+        return new FirestoreFriendAdapter.Callback() {
+            @Override public void onAccept(User user) { }
+            @Override public void onDecline(User user) { }
+            @Override public void onCancel(User user) { cancelSentRequest(user); }  // NÚT HỦY
+            @Override public void onRemove(User user) { }
+            @Override public void onSendRequest(User user) { }
+            @Override public void onBlock(User user) { }
+            @Override public void onUnblock(User user) { }
+        };
+    }
+
     private FirestoreFriendAdapter.Callback createBlockedCallback() {
         return new FirestoreFriendAdapter.Callback() {
             @Override public void onAccept(User user) { }
@@ -152,9 +182,7 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
             @Override public void onRemove(User user) { }
             @Override public void onSendRequest(User user) { }
             @Override public void onBlock(User user) { }
-            @Override public void onUnblock(User user) {
-                unblockUser(user);
-            }
+            @Override public void onUnblock(User user) { unblockUser(user); }
         };
     }
 
@@ -211,6 +239,38 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(getContext(), "Lỗi tải yêu cầu kết bạn: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+    }
+
+    // MỚI THÊM: Load Sent Requests
+    private void loadSentRequests() {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        Log.d("FriendsBottomSheet", "Loading sent requests for user: " + currentUserId);
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("sentRequests")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    sentRequests.clear();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        User user = document.toObject(User.class);
+                        Log.d("FriendsBottomSheet", "Sent request to: " + user.displayName);
+                        sentRequests.add(user);
+                    }
+
+                    if (!sentRequests.isEmpty()) {
+                        sentRequestsSection.setVisibility(View.VISIBLE);
+                        sentAdapter.notifyDataSetChanged();
+                    } else {
+                        sentRequestsSection.setVisibility(View.GONE);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FriendsBottomSheet", "Error loading sent requests", e);
+                    Toast.makeText(getContext(), "Lỗi tải yêu cầu đã gửi: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
     }
 
@@ -335,6 +395,7 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
                                                                     Toast.makeText(getContext(), "Đã chấp nhận lời mời kết bạn", Toast.LENGTH_SHORT).show();
                                                                     loadFriends();
                                                                     loadFriendRequests();
+                                                                    loadSentRequests();  // refresh sent requests
                                                                 })
                                                                 .addOnFailureListener(e -> {
                                                                     Log.e("FriendsBottomSheet", "Error deleting sentRequests", e);
@@ -389,6 +450,42 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
                 .addOnFailureListener(e -> {
                     Log.e("FriendsBottomSheet", "Error declining request", e);
                     Toast.makeText(getContext(), "Lỗi từ chối yêu cầu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    // MỚI THÊM: Cancel Sent Request (NÚT HỦY)
+    private void cancelSentRequest(User user) {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        Log.d("FriendsBottomSheet", "Cancelling sent request to: " + user.uid);
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("sentRequests")
+                .document(user.uid)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("FriendsBottomSheet", "Deleted from my sentRequests");
+
+                    db.collection("users")
+                            .document(user.uid)
+                            .collection("friendRequests")
+                            .document(currentUserId)
+                            .delete()
+                            .addOnSuccessListener(aVoid1 -> {
+                                Log.d("FriendsBottomSheet", "Deleted from their friendRequests");
+                                Toast.makeText(getContext(), "Đã hủy yêu cầu kết bạn", Toast.LENGTH_SHORT).show();
+                                loadSentRequests();
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e("FriendsBottomSheet", "Error deleting their friendRequests", e);
+                                Toast.makeText(getContext(), "Lỗi hủy yêu cầu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FriendsBottomSheet", "Error cancelling sent request", e);
+                    Toast.makeText(getContext(), "Lỗi hủy yêu cầu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -507,6 +604,7 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
                     Toast.makeText(getContext(), "Đã chặn " + user.displayName, Toast.LENGTH_SHORT).show();
                     loadFriends();
                     loadFriendRequests();
+                    loadSentRequests();  // refresh sent requests
                     loadBlockedUsers();
                 })
                 .addOnFailureListener(e -> {
