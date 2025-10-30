@@ -1,196 +1,107 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="@drawable/bottom_sheet_background_dark"
-    android:paddingBottom="24dp">
+    android:fillViewport="true">
 
-    <!-- Handle bar -->
-    <View
-        android:id="@+id/handleBar"
-        android:layout_width="40dp"
-        android:layout_height="4dp"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/handle_bar_background_dark" />
-
-    <!-- Tiêu đề "Bạn bè" -->
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="24dp"
-        android:text="Bạn bè"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#FFFFFF" />
-
-    <!-- Hộp tìm kiếm -->
     <LinearLayout
-        android:id="@+id/searchBox"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="24dp"
-        android:background="@drawable/search_box_background_dark"
-        android:orientation="horizontal"
-        android:padding="12dp"
-        android:gravity="center_vertical"
-        android:clickable="true"
-        android:focusable="true">
-
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@android:drawable/ic_menu_search"
-            android:tint="#B0B0B0" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="12dp"
-            android:text="Thêm một người bạn mới"
-            android:textSize="14sp"
-            android:textColor="#B0B0B0" />
-    </LinearLayout>
-
-    <!-- Section: Yêu cầu kết bạn -->
-    <LinearLayout
-        android:id="@+id/friendRequestSection"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_marginTop="24dp"
-        android:visibility="gone">
+        android:background="@color/black_900"
+        android:padding="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
+        <!-- Big title centered -->
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:text="Yêu cầu kết bạn"
-            android:textSize="16sp"
+            android:id="@+id/tvTitle"
+            android:text="Bạn bè"
+            android:textColor="@color/white"
             android:textStyle="bold"
-            android:textColor="#FFFFFF" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvFriendRequests"
+            android:textSize="24sp"
+            android:gravity="center"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:nestedScrollingEnabled="false" />
-    </LinearLayout>
+            android:layout_height="wrap_content"/>
 
-    <!-- Section: Danh sách bạn bè -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginTop="24dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:text="Bạn bè của bạn"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvFriendsList"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:nestedScrollingEnabled="false" />
-    </LinearLayout>
-
-    <!-- Nút "Xem thêm" -->
-    <LinearLayout
-        android:id="@+id/btnSeeMore"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="16dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:visibility="gone"
-        android:clickable="true"
-        android:focusable="true"
-        android:padding="8dp">
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1"
-            android:background="#404040" />
-
-        <TextView
-            android:id="@+id/tvSeeMore"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:text="Xem thêm"
-            android:textSize="14sp"
-            android:textColor="#BB86FC"
-            android:textStyle="bold" />
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1"
-            android:background="#404040" />
-    </LinearLayout>
-
-    <!-- Section: Đã chặn - MỚI THÊM -->
-    <LinearLayout
-        android:id="@+id/blockedUsersSection"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginTop="24dp"
-        android:visibility="gone">
-
+        <!-- add friend input -->
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:gravity="center_vertical">
+            android:layout_marginTop="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+            <EditText
+                android:id="@+id/etAdd"
+                android:hint="Thêm bạn (email)"
+                android:backgroundTint="@color/gray_600"
+                android:textColor="@color/white"
                 android:layout_weight="1"
-                android:text="Đã chặn"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="#FF5252" />
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"/>
 
-            <TextView
-                android:id="@+id/tvBlockedCount"
+            <Button
+                android:id="@+id/btnAdd"
+                android:text="Thêm"
+                android:layout_marginLeft="8dp"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0"
-                android:textSize="14sp"
-                android:textColor="#B0B0B0" />
+                android:layout_height="wrap_content"/>
         </LinearLayout>
 
+        <!-- INCOMING REQUESTS -->
+        <TextView
+            android:text="Yêu cầu tới"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvBlockedUsers"
+            android:id="@+id/rvIncoming"
+            android:layout_marginTop="8dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:nestedScrollingEnabled="false" />
-    </LinearLayout>
+            android:minHeight="60dp"/>
 
-</LinearLayout>
+        <!-- SENT REQUESTS -->
+        <TextView
+            android:text="Bạn đã gửi"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvSent"
+            android:layout_marginTop="8dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="60dp"/>
+
+        <!-- FRIENDS LIST -->
+        <TextView
+            android:text="Bạn bè của bạn"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvFriends"
+            android:layout_marginTop="8dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="120dp"/>
+
+        <!-- expand/collapse button for friends -->
+        <Button
+            android:id="@+id/btnToggle"
+            android:text="Xem thêm"
+            android:layout_gravity="center"
+            android:layout_marginTop="12dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+</ScrollView>
