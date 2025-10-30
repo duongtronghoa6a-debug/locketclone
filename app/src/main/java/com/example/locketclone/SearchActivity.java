@@ -42,10 +42,13 @@ public class SearchActivity extends AppCompatActivity {
 
     List<User> searchResults = new ArrayList<>();
     List<User> sentRequests = new ArrayList<>();
-    Map<String, Boolean> blockedStatusMap = new HashMap<>(); // Track blocked users
+    Map<String, Boolean> blockedStatusMap = new HashMap<>();
+    Map<String, String> userStatusMap = new HashMap<>(); // "friend"/"sent"/"incoming"
 
     FirebaseFirestore db;
     FirebaseUser currentUser;
+    FirestoreFriendAdapter searchAdapter;
+    FirestoreFriendAdapter sentRequestAdapter;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -70,14 +73,16 @@ public class SearchActivity extends AppCompatActivity {
         updateSearchAdapter();
 
         // Setup RecyclerView cho danh sách đã gửi yêu cầu
-        FirestoreFriendAdapter sentRequestAdapter = new FirestoreFriendAdapter(
+        sentRequestAdapter = new FirestoreFriendAdapter(
                 sentRequests,
                 this,
                 FirestoreFriendAdapter.Mode.SENT,
                 new FirestoreFriendAdapter.Callback() {
                     @Override public void onAccept(User user) {}
                     @Override public void onDecline(User user) {}
-                    @Override public void onCancel(User user) { cancelSentRequest(user); }
+                    @Override public void onCancel(User user) {
+                        cancelSentRequestFromSentSection(user); // FIX: dùng method mới
+                    }
                     @Override public void onRemove(User user) {}
                     @Override public void onSendRequest(User user) {}
                     @Override public void onBlock(User user) {}
@@ -96,45 +101,86 @@ public class SearchActivity extends AppCompatActivity {
             searchUsers(q);
         });
 
+        // FIX 3: Load status trước khi search để tránh delay
+        preloadAllStatuses();
         loadSentRequests();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        preloadAllStatuses();
         loadSentRequests();
     }
 
     /**
-     * Cập nhật adapter cho search results với logic động
+     * FIX 3: Preload tất cả status vào cache (chạy ngầm khi mở activity)
+     */
+    private void preloadAllStatuses() {
+        if (currentUser == null) return;
+        String myUid = currentUser.getUid();
+
+        // Load blocked
+        db.collection("users").document(myUid).collection("blockedUsers").get()
+                .addOnSuccessListener(qs -> {
+                    for (QueryDocumentSnapshot doc : qs) {
+                        blockedStatusMap.put(doc.getId(), true);
+                    }
+                });
+
+        // Load friends
+        db.collection("users").document(myUid).collection("friends").get()
+                .addOnSuccessListener(qs -> {
+                    for (QueryDocumentSnapshot doc : qs) {
+                        userStatusMap.put(doc.getId(), "friend");
+                    }
+                    Log.d(TAG, "Preloaded " + userStatusMap.size() + " friends");
+                });
+
+        // Load sentRequests
+        db.collection("users").document(myUid).collection("sentRequests").get()
+                .addOnSuccessListener(qs -> {
+                    for (QueryDocumentSnapshot doc : qs) {
+                        userStatusMap.put(doc.getId(), "sent");
+                    }
+                });
+
+        // Load incoming
+        db.collection("users").document(myUid).collection("friendRequests").get()
+                .addOnSuccessListener(qs -> {
+                    for (QueryDocumentSnapshot doc : qs) {
+                        userStatusMap.put(doc.getId(), "incoming");
+                    }
+                });
+    }
+
+    /**
+     * Cập nhật adapter cho search results
      */
     private void updateSearchAdapter() {
-        FirestoreFriendAdapter searchAdapter = new FirestoreFriendAdapter(
+        searchAdapter = new FirestoreFriendAdapter(
                 searchResults,
                 this,
                 FirestoreFriendAdapter.Mode.SEARCH,
                 new FirestoreFriendAdapter.Callback() {
                     @Override public void onAccept(User user) {}
                     @Override public void onDecline(User user) {}
-                    @Override public void onCancel(User user) {}
+                    @Override public void onCancel(User user) {
+                        cancelSentRequestFromSearchResults(user);
+                    }
                     @Override public void onRemove(User user) {}
-                    @Override public void onSendRequest(User user) {
-                        sendFriendRequest(user);
-                    }
+                    @Override public void onSendRequest(User user) { sendFriendRequest(user); }
                     @Override public void onBlock(User user) {}
-                    @Override public void onUnblock(User user) {
-                        unblockUserFromSearch(user);
-                    }
+                    @Override public void onUnblock(User user) { unblockUserFromSearch(user); }
                 }
         ) {
             @Override
             public void onBindViewHolder(VH holder, int position) {
                 User u = getItems().get(position);
 
-                // Kiểm tra blocked status
                 boolean isBlocked = blockedStatusMap.containsKey(u.uid) && blockedStatusMap.get(u.uid);
+                String status = userStatusMap.get(u.uid);
 
-                // Hiển thị tên
                 String displayName = u.displayName != null && !u.displayName.isEmpty()
                         ? u.displayName
                         : (u.email != null ? u.email : "Không tên");
@@ -144,7 +190,6 @@ public class SearchActivity extends AppCompatActivity {
                 }
                 holder.tvName.setText(displayName);
 
-                // Hiển thị avatar
                 if (u.photoUrl != null && !u.photoUrl.isEmpty()) {
                     com.bumptech.glide.Glide.with(SearchActivity.this)
                             .load(u.photoUrl)
@@ -154,20 +199,45 @@ public class SearchActivity extends AppCompatActivity {
                     holder.ivAvatar.setImageResource(R.drawable.ic_person_circle);
                 }
 
-                // Cấu hình nút
                 holder.btnPrimary.setVisibility(View.VISIBLE);
                 holder.btnSecondary.setVisibility(View.GONE);
 
                 if (isBlocked) {
-                    // Nút "Gỡ chặn"
                     holder.btnPrimary.setText("Gỡ chặn");
+                    holder.btnPrimary.setEnabled(true);
                     holder.btnPrimary.setBackgroundTintList(
                             android.content.res.ColorStateList.valueOf(0xFFFF5252)
                     );
                     holder.btnPrimary.setOnClickListener(v -> unblockUserFromSearch(u));
+                } else if ("friend".equals(status)) {
+                    holder.btnPrimary.setText("Bạn bè");
+                    holder.btnPrimary.setEnabled(false);
+                    holder.btnPrimary.setAlpha(0.5f);
+                    holder.btnPrimary.setBackgroundTintList(
+                            android.content.res.ColorStateList.valueOf(0xFF757575)
+                    );
+                    holder.btnPrimary.setOnClickListener(null);
+                } else if ("sent".equals(status)) {
+                    // NÚT VÀNG "Hủy"
+                    holder.btnPrimary.setText("Hủy");
+                    holder.btnPrimary.setEnabled(true);
+                    holder.btnPrimary.setAlpha(1.0f);
+                    holder.btnPrimary.setBackgroundTintList(
+                            android.content.res.ColorStateList.valueOf(0xFFFF9800) // Vàng
+                    );
+                    holder.btnPrimary.setOnClickListener(v -> cancelSentRequestFromSearchResults(u));
+                } else if ("incoming".equals(status)) {
+                    holder.btnPrimary.setText("Đã gửi cho bạn");
+                    holder.btnPrimary.setEnabled(false);
+                    holder.btnPrimary.setAlpha(0.5f);
+                    holder.btnPrimary.setBackgroundTintList(
+                            android.content.res.ColorStateList.valueOf(0xFF757575)
+                    );
+                    holder.btnPrimary.setOnClickListener(null);
                 } else {
-                    // Nút "Kết bạn"
                     holder.btnPrimary.setText("Kết bạn");
+                    holder.btnPrimary.setEnabled(true);
+                    holder.btnPrimary.setAlpha(1.0f);
                     holder.btnPrimary.setBackgroundTintList(
                             android.content.res.ColorStateList.valueOf(0xFFBB86FC)
                     );
@@ -180,7 +250,7 @@ public class SearchActivity extends AppCompatActivity {
     }
 
     /**
-     * Load danh sách yêu cầu kết bạn đã gửi
+     * Load danh sách yêu cầu đã gửi
      */
     private void loadSentRequests() {
         if (currentUser == null) return;
@@ -203,7 +273,7 @@ public class SearchActivity extends AppCompatActivity {
                         sentRequestSection.setVisibility(View.GONE);
                     } else {
                         sentRequestSection.setVisibility(View.VISIBLE);
-                        rvSentRequests.getAdapter().notifyDataSetChanged();
+                        sentRequestAdapter.notifyDataSetChanged();
                     }
                 })
                 .addOnFailureListener(e -> {
@@ -212,11 +282,13 @@ public class SearchActivity extends AppCompatActivity {
     }
 
     /**
-     * Hủy yêu cầu kết bạn đã gửi
+     * FIX 2: Hủy yêu cầu từ section "Đã gửi" (nút xám) → sync với search results
      */
-    private void cancelSentRequest(User user) {
+    private void cancelSentRequestFromSentSection(User user) {
         if (currentUser == null) return;
         String myUid = currentUser.getUid();
+
+        Log.d(TAG, "Cancelling from Sent Section: " + user.uid);
 
         db.collection("users")
                 .document(myUid)
@@ -231,17 +303,60 @@ public class SearchActivity extends AppCompatActivity {
                             .delete()
                             .addOnSuccessListener(aVoid1 -> {
                                 Toast.makeText(this, "Đã hủy yêu cầu", Toast.LENGTH_SHORT).show();
+
+                                // FIX 2: Update status → null (có thể gửi lại)
+                                userStatusMap.remove(user.uid);
+
+                                // Reload sent section
                                 loadSentRequests();
+
+                                // Refresh search results (nếu user này đang trong search)
+                                if (searchAdapter != null) {
+                                    searchAdapter.notifyDataSetChanged();
+                                }
                             });
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error canceling request", e);
-                    Toast.makeText(this, "Lỗi hủy yêu cầu", Toast.LENGTH_SHORT).show();
                 });
     }
 
     /**
-     * TÌM KIẾM NGƯỜI DÙNG - ĐƠNN GIẢN HÓA
+     * Hủy yêu cầu từ search results (nút vàng)
+     */
+    private void cancelSentRequestFromSearchResults(User user) {
+        if (currentUser == null) return;
+        String myUid = currentUser.getUid();
+
+        Log.d(TAG, "Cancelling from Search Results: " + user.uid);
+
+        db.collection("users")
+                .document(myUid)
+                .collection("sentRequests")
+                .document(user.uid)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    db.collection("users")
+                            .document(user.uid)
+                            .collection("friendRequests")
+                            .document(myUid)
+                            .delete()
+                            .addOnSuccessListener(aVoid1 -> {
+                                Toast.makeText(this, "Đã hủy yêu cầu", Toast.LENGTH_SHORT).show();
+
+                                // Update status → null
+                                userStatusMap.remove(user.uid);
+
+                                // Refresh search adapter
+                                if (searchAdapter != null) {
+                                    searchAdapter.notifyDataSetChanged();
+                                }
+
+                                // Reload sent section
+                                loadSentRequests();
+                            });
+                });
+    }
+
+    /**
+     * TÌM KIẾM NGƯỜI DÙNG
      */
     private void searchUsers(String q) {
         if (currentUser == null) return;
@@ -251,7 +366,6 @@ public class SearchActivity extends AppCompatActivity {
 
         db.collection("users").limit(50).get().addOnSuccessListener(qs -> {
             searchResults.clear();
-            blockedStatusMap.clear();
 
             int totalMatches = 0;
 
@@ -266,8 +380,6 @@ public class SearchActivity extends AppCompatActivity {
                 if (name.contains(q) || email.contains(q)) {
                     if (myUid.equals(u.uid)) continue;
                     totalMatches++;
-
-                    // Thêm vào kết quả và kiểm tra status sau
                     searchResults.add(u);
                 }
             }
@@ -279,77 +391,13 @@ public class SearchActivity extends AppCompatActivity {
                 tvSearchResultsTitle.setVisibility(View.GONE);
             } else {
                 tvSearchResultsTitle.setVisibility(View.VISIBLE);
-                // Kiểm tra từng user xem có bị chặn, đã là bạn, hoặc đã gửi yêu cầu chưa
-                checkAllUserStatuses(myUid);
+                // FIX 3: Không cần query lại, dùng cache
+                updateSearchAdapter();
             }
         }).addOnFailureListener(e -> {
             Log.e(TAG, "Search error", e);
             Toast.makeText(this, "Lỗi tìm kiếm: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         });
-    }
-
-    /**
-     * Kiểm tra trạng thái của tất cả users trong kết quả
-     */
-    private void checkAllUserStatuses(String myUid) {
-        List<User> filteredResults = new ArrayList<>();
-
-        // Load blocked list trước
-        db.collection("users")
-                .document(myUid)
-                .collection("blockedUsers")
-                .get()
-                .addOnSuccessListener(blockedSnapshot -> {
-                    // Đánh dấu các user đã bị chặn
-                    for (QueryDocumentSnapshot doc : blockedSnapshot) {
-                        blockedStatusMap.put(doc.getId(), true);
-                    }
-
-                    // Load friends list
-                    db.collection("users")
-                            .document(myUid)
-                            .collection("friends")
-                            .get()
-                            .addOnSuccessListener(friendsSnapshot -> {
-                                List<String> friendIds = new ArrayList<>();
-                                for (QueryDocumentSnapshot doc : friendsSnapshot) {
-                                    friendIds.add(doc.getId());
-                                }
-
-                                // Load sent requests list
-                                db.collection("users")
-                                        .document(myUid)
-                                        .collection("sentRequests")
-                                        .get()
-                                        .addOnSuccessListener(sentSnapshot -> {
-                                            List<String> sentIds = new ArrayList<>();
-                                            for (QueryDocumentSnapshot doc : sentSnapshot) {
-                                                sentIds.add(doc.getId());
-                                            }
-
-                                            // Filter: chỉ giữ lại user chưa là bạn và chưa gửi yêu cầu
-                                            // Nhưng vẫn giữ user đã chặn để hiển thị nút "Gỡ chặn"
-                                            for (User user : searchResults) {
-                                                if (!friendIds.contains(user.uid) && !sentIds.contains(user.uid)) {
-                                                    filteredResults.add(user);
-                                                }
-                                            }
-
-                                            // Cập nhật kết quả
-                                            searchResults.clear();
-                                            searchResults.addAll(filteredResults);
-
-                                            Log.d(TAG, "Filtered results: " + searchResults.size());
-
-                                            updateSearchAdapter();
-
-                                            if (searchResults.isEmpty()) {
-                                                Toast.makeText(this, "Không có kết quả phù hợp", Toast.LENGTH_SHORT).show();
-                                                tvSearchResultsTitle.setVisibility(View.GONE);
-                                            }
-                                        });
-                            });
-                });
     }
 
     /**
@@ -364,9 +412,18 @@ public class SearchActivity extends AppCompatActivity {
         String myUid = currentUser.getUid();
         String targetUid = targetUser.uid;
 
-        // Kiểm tra xem có chặn người này không
         if (blockedStatusMap.containsKey(targetUid) && blockedStatusMap.get(targetUid)) {
             Toast.makeText(this, "Bạn đã chặn người dùng này. Hãy gỡ chặn trước.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String status = userStatusMap.get(targetUid);
+        if ("friend".equals(status)) {
+            Toast.makeText(this, "Đã là bạn bè rồi", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if ("sent".equals(status)) {
+            Toast.makeText(this, "Đã gửi yêu cầu trước đó", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -394,8 +451,11 @@ public class SearchActivity extends AppCompatActivity {
                                         .addOnSuccessListener(aVoid1 -> {
                                             Toast.makeText(this, "Đã gửi yêu cầu kết bạn", Toast.LENGTH_SHORT).show();
 
-                                            searchResults.remove(targetUser);
-                                            updateSearchAdapter();
+                                            // Update status → "sent"
+                                            userStatusMap.put(targetUid, "sent");
+                                            if (searchAdapter != null) {
+                                                searchAdapter.notifyDataSetChanged();
+                                            }
 
                                             loadSentRequests();
                                         });
@@ -408,7 +468,7 @@ public class SearchActivity extends AppCompatActivity {
     }
 
     /**
-     * GỠ CHẶN TỪ KẾT QUẢ TÌM KIẾM
+     * GỠ CHẶN
      */
     private void unblockUserFromSearch(User user) {
         new android.app.AlertDialog.Builder(this)
@@ -431,11 +491,7 @@ public class SearchActivity extends AppCompatActivity {
                 .delete()
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "Đã gỡ chặn " + user.displayName, Toast.LENGTH_SHORT).show();
-
-                    // Cập nhật map
                     blockedStatusMap.put(user.uid, false);
-
-                    // Reload adapter để hiển thị nút "Kết bạn"
                     updateSearchAdapter();
                 })
                 .addOnFailureListener(e -> {

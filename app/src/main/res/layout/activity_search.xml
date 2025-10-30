@@ -1,124 +1,118 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="#121212"
+    android:background="@color/black_900"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Header với nút Back -->
-    <RelativeLayout
+    <!-- Header -->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:layout_marginTop="8dp">
+        android:layout_height="wrap_content">
 
-        <!-- Nút Back -->
         <ImageButton
             android:id="@+id/btnBack"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_revert"
-            android:tint="#FFFFFF"
-            android:contentDescription="Quay lại"
-            android:padding="12dp" />
+            android:layout_width="48dp"
+            android:layout_height="48dp"/>
 
-        <!-- Tiêu đề -->
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
             android:text="Tìm kiếm bạn bè"
+            android:textColor="@color/white"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:textColor="#FFFFFF" />
-    </RelativeLayout>
+            android:layout_marginLeft="12dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
 
-    <!-- Content với ScrollView -->
+    <!-- Search box -->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <EditText
+            android:id="@+id/etQuery"
+            android:hint="Tìm theo tên hoặc email"
+            android:backgroundTint="@color/gray_600"
+            android:textColor="@color/white"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"/>
+
+        <Button
+            android:id="@+id/btnSearch"
+            android:text="Tìm"
+            android:layout_marginLeft="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
-            <!-- Hộp tìm kiếm -->
-            <EditText
-                android:id="@+id/etQuery"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Tìm theo tên hoặc email"
-                android:textColorHint="#B0B0B0"
-                android:textColor="#FFFFFF"
-                android:background="@drawable/search_box_background_dark"
-                android:padding="12dp"
-                android:inputType="textEmailAddress" />
-
-            <!-- Nút tìm kiếm -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSearch"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="Tìm kiếm"
-                android:textSize="16sp"
-                app:cornerRadius="12dp"
-                android:backgroundTint="#BB86FC"
-                android:textColor="#FFFFFF" />
-
-            <!-- Section: Đã gửi yêu cầu -->
+            <!-- KẾT QUẢ TÌM KIẾM (lên trên) -->
             <LinearLayout
-                android:id="@+id/sentRequestSection"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginTop="24dp"
-                android:visibility="gone">
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
                 <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Đã gửi yêu cầu"
-                    android:textSize="16sp"
+                    android:id="@+id/tvSearchResultsTitle"
+                    android:text="Kết quả tìm kiếm"
+                    android:textColor="@color/white"
                     android:textStyle="bold"
-                    android:textColor="#FFFFFF"
-                    android:layout_marginBottom="12dp" />
+                    android:textSize="16sp"
+                    android:padding="12dp"
+                    android:visibility="gone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvResults"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"/>
+            </LinearLayout>
+
+            <!-- ĐÃ GỬI YÊU CẦU (xuống dưới) -->
+            <LinearLayout
+                android:id="@+id/sentRequestSection"
+                android:orientation="vertical"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:text="Đã gửi yêu cầu"
+                    android:textColor="@color/white"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:padding="12dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvSentRequests"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" />
+                    android:nestedScrollingEnabled="false"/>
             </LinearLayout>
 
-            <!-- Kết quả tìm kiếm -->
-            <TextView
-                android:id="@+id/tvSearchResultsTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="Kết quả tìm kiếm"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:visibility="gone"
-                android:layout_marginBottom="12dp" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvResults"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:clipToPadding="false"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp" />
         </LinearLayout>
     </ScrollView>
 
