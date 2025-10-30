@@ -4,101 +4,159 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:background="#121212">
+    android:background="@color/white">
 
-    <!-- Hàng nhập email (tìm kiếm người mới) -->
-    <LinearLayout
-        android:id="@+id/add_friend_row"
+    <!-- 1. Handle bar for dragging -->
+    <View
+        android:id="@+id/handleBar"
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:background="@color/handle_bar"
+        android:radius="2dp" />
+
+    <!-- 2. Title "Bạn bè" -->
+    <TextView
+        android:id="@+id/tvTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:text="Bạn bè"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        android:gravity="center"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp" />
+
+    <!-- 3. Search box (click to open SearchActivity) -->
+    <LinearLayout
+        android:id="@+id/searchBox"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginTop="8dp"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp">
+        android:background="@color/divider"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="24dp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:clickable="true"
+        android:focusable="true">
 
-        <EditText
-            android:id="@+id/etAdd"
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@android:drawable/ic_menu_search"
+            android:tint="@color/gray_600" />
+
+        <TextView
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_height="48dp"
-            android:minHeight="48dp"
-            android:hint="Nhập email để gửi yêu cầu"
-            android:inputType="textEmailAddress"
-            android:textColorHint="#BDBDBD"
-            android:textColor="#FFFFFF"
-            android:paddingLeft="12dp"
-            android:paddingRight="12dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:backgroundTint="?attr/colorControlNormal"
-            android:importantForAccessibility="yes" />
-
-        <Button
-            android:id="@+id/btnAdd"
-            android:layout_width="wrap_content"
-            android:layout_height="48dp"
-            android:minHeight="48dp"
-            android:minWidth="64dp"
-            android:layout_marginStart="8dp"
-            android:paddingLeft="16dp"
-            android:paddingRight="16dp"
-            android:text="Gửi"
-            android:visibility="visible"
-            android:backgroundTint="#1E88E5"
-            android:textColor="#FFFFFF" />
+            android:layout_marginLeft="12dp"
+            android:text="Thêm một người bạn mới"
+            android:textColor="@color/gray_600"
+            android:textSize="14sp" />
     </LinearLayout>
 
-    <!-- Incoming requests header (hiển thị nếu có request) -->
+    <!-- Hidden EditText and Button for backward compatibility -->
+    <EditText
+        android:id="@+id/etAdd"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/btnAdd"
+        android:visibility="gone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <!-- 4. Friend requests section -->
     <TextView
         android:id="@+id/tvIncomingHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Lời mời kết bạn"
+        android:text="Yêu cầu kết bạn"
+        android:textSize="16sp"
         android:textStyle="bold"
-        android:textColor="#FFFFFF"
+        android:textColor="@android:color/black"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
         android:paddingTop="8dp"
-        android:paddingBottom="6dp"
+        android:paddingBottom="12dp"
         android:visibility="gone" />
 
-    <!-- RecyclerView cho incoming requests -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvIncoming"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:visibility="gone"
-        android:nestedScrollingEnabled="false" />
+        android:nestedScrollingEnabled="false"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="24dp" />
 
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="8dp" />
-
-    <!-- Friends header -->
+    <!-- 5. Friends list section -->
     <TextView
         android:id="@+id/tvFriendsHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Bạn bè"
+        android:text="Bạn bè của bạn"
+        android:textSize="16sp"
         android:textStyle="bold"
-        android:textColor="#FFFFFF"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp"
+        android:textColor="@android:color/black"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="12dp"
         android:visibility="gone" />
-
-    <!-- Toggle / friends list -->
-    <Button
-        android:id="@+id/btnToggle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Xem thêm"
-        android:backgroundTint="#263238"
-        android:textColor="#FFFFFF" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvFriends"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:nestedScrollingEnabled="false" />
+        android:nestedScrollingEnabled="false"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp" />
+
+    <!-- 6. "Xem thêm" button with dividers -->
+    <LinearLayout
+        android:id="@+id/btnToggle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="16dp"
+        android:paddingBottom="24dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"
+            android:background="@color/divider"
+            android:layout_marginLeft="16dp" />
+
+        <TextView
+            android:id="@+id/tvToggleText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Xem thêm"
+            android:textColor="@color/gray_600"
+            android:textSize="14sp"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"
+            android:background="@color/divider"
+            android:layout_marginRight="16dp" />
+    </LinearLayout>
 </LinearLayout>

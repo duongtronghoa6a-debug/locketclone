@@ -44,7 +44,9 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
     List<User> friendsList = new ArrayList<>();
     List<User> incomingList = new ArrayList<>();
     List<User> sentList = new ArrayList<>();
-    Button btnToggle;
+    View btnToggle;
+    TextView tvToggleText;
+    View searchBox;
     EditText etAdd;
     Button btnAdd;
     TextView tvIncomingHeader, tvFriendsHeader;
@@ -66,6 +68,8 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
         rvIncoming = v.findViewById(R.id.rvIncoming);
         rvFriends = v.findViewById(R.id.rvFriends);
         btnToggle = v.findViewById(R.id.btnToggle);
+        tvToggleText = v.findViewById(R.id.tvToggleText);
+        searchBox = v.findViewById(R.id.searchBox);
         etAdd = v.findViewById(R.id.etAdd);
         btnAdd = v.findViewById(R.id.btnAdd);
         tvIncomingHeader = v.findViewById(R.id.tvIncomingHeader);
@@ -91,13 +95,22 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
         rvFriends.setAdapter(friendsAdapter);
         rvFriends.setLayoutManager(new LinearLayoutManager(getContext()));
 
+        // Search box click opens SearchActivity
+        searchBox.setOnClickListener(v1 -> {
+            android.content.Intent intent = new android.content.Intent(getContext(), com.example.locketclone.SearchActivity.class);
+            startActivity(intent);
+        });
+
         // toggle cycles through friend list expansion (keeps incoming visible on top)
         btnToggle.setOnClickListener(bt -> {
             expanded = !expanded;
-            btnToggle.setText(expanded ? "Rút gọn" : "Xem thêm");
+            if (tvToggleText != null) {
+                tvToggleText.setText(expanded ? "Rút gọn" : "Xem thêm");
+            }
             refreshShownFriends();
         });
 
+        // Keep backward compatibility with add button
         btnAdd.setOnClickListener(b -> {
             String email = etAdd.getText().toString().trim();
             if (TextUtils.isEmpty(email)) {
@@ -191,6 +204,13 @@ public class FriendsBottomSheet extends BottomSheetDialogFragment {
             shown.addAll(friendsList);
         }
         friendsAdapter.updateItems(shown);
+        
+        // Show/hide toggle button based on friend count
+        if (friendsList.size() > 3) {
+            btnToggle.setVisibility(View.VISIBLE);
+        } else {
+            btnToggle.setVisibility(View.GONE);
+        }
     }
 
     private void loadUsersByUids(List<String> uids, List<User> targetList, FirestoreFriendAdapter adapter) {
