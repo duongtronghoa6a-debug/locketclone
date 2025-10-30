@@ -1,125 +1,107 @@
 package com.example.locketclone;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.Button;
+import android.util.Log;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.locketclone.ui.FriendsBottomSheet;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.ListenerRegistration;
-
-import java.util.List;
 
 public class HomeActivity extends AppCompatActivity {
-    Button btnFriends;
-    TextView tvFriendCount;
-    TextView tvUserName;
-    Button btnSignOut;
 
-    private FirebaseAuth auth;
-    private FirebaseFirestore db;
-    private ListenerRegistration userListener;
-    private static final int MAX_FRIENDS = 20;
+    private TextView tvFriendsCount;
+    private LinearLayout btnFriends;
+    private ImageButton btnLogout;
+    private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
+        mAuth = FirebaseAuth.getInstance();
+
+        tvFriendsCount = findViewById(R.id.tvFriendsCount);
         btnFriends = findViewById(R.id.btnFriends);
-        tvFriendCount = findViewById(R.id.tvFriendCount);
-        tvUserName = findViewById(R.id.tvUserName);
-        btnSignOut = findViewById(R.id.btnSignOut);
+        btnLogout = findViewById(R.id.btnLogout);
 
-        auth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
+        // Load số lượng bạn bè
+        loadFriendsCount();
 
-        // Click friends -> open sheet only if logged in
+        // Nút Bạn bè
         btnFriends.setOnClickListener(v -> {
-            FirebaseUser u = auth.getCurrentUser();
-            if (u == null) {
-                // redirect to login
-                startActivity(new Intent(HomeActivity.this, LoginActivity.class));
-                return;
-            }
-            FriendsBottomSheet sheet = FriendsBottomSheet.newInstance();
-            sheet.show(getSupportFragmentManager(), "friends_sheet");
+            // Mở Bottom Sheet
+            FriendsBottomSheet bottomSheet = new FriendsBottomSheet();
+            bottomSheet.show(getSupportFragmentManager(), "FriendsBottomSheet");
         });
 
-        btnSignOut.setOnClickListener(v -> {
-            auth.signOut();
-            // remove listener and refresh UI / redirect to login
-            detachUserListener();
-            startActivity(new Intent(HomeActivity.this, LoginActivity.class));
-            finish();
+        // Nút Log Out
+        btnLogout.setOnClickListener(v -> {
+            showLogoutDialog();
         });
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        FirebaseUser u = auth.getCurrentUser();
-        if (u == null) {
-            // not logged in -> go to login screen
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
-            return;
-        }
-        // show basic user info immediately (email or uid). Full info will update from Firestore listener.
-        tvUserName.setText(u.getDisplayName() != null && !u.getDisplayName().isEmpty() ? u.getDisplayName() : u.getEmail());
-
-        attachUserListenerIfLoggedIn();
+    protected void onResume() {
+        super.onResume();
+        // Reload số bạn bè khi quay lại activity
+        loadFriendsCount();
     }
 
-    @Override
-    protected void onStop() {
-        super.onStop();
-        detachUserListener();
-    }
+    private void loadFriendsCount() {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        Log.d("HomeActivity", "Loading friends count for user: " + currentUserId);
 
-    private void attachUserListenerIfLoggedIn() {
-        FirebaseUser u = auth.getCurrentUser();
-        if (u == null) return;
-        String uid = u.getUid();
-        detachUserListener();
-        userListener = db.collection("users").document(uid)
-                .addSnapshotListener((DocumentSnapshot snapshot, @Nullable com.google.firebase.firestore.FirebaseFirestoreException e) -> {
-                    if (e != null) {
-                        // error reading doc -> show fallback
-                        tvFriendCount.setText("0 người bạn");
-                        return;
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("users")
+                .document(currentUserId)
+                .collection("friends")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    int count = queryDocumentSnapshots.size();
+                    Log.d("HomeActivity", "Friends count: " + count);
+                    if (count == 0) {
+                        tvFriendsCount.setText("Chưa có bạn bè");
+                    } else {
+                        tvFriendsCount.setText(count + " bạn bè");
                     }
-                    if (snapshot == null || !snapshot.exists()) {
-                        tvFriendCount.setText("0 người bạn");
-                        return;
-                    }
-                    // update display name if available in user doc
-                    String displayName = snapshot.getString("displayName");
-                    if (displayName != null && !displayName.isEmpty()) {
-                        tvUserName.setText(displayName);
-                    }
-                    Object raw = snapshot.get("friends");
-                    int count = 0;
-                    if (raw instanceof List) {
-                        count = ((List<?>) raw).size();
-                    }
-                    tvFriendCount.setText(String.format("%d / %d người bạn", count, MAX_FRIENDS));
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("HomeActivity", "Error loading friends count", e);
+                    tvFriendsCount.setText("... bạn bè");
                 });
     }
 
-    private void detachUserListener() {
-        if (userListener != null) {
-            userListener.remove();
-            userListener = null;
-        }
+    private void showLogoutDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Đăng xuất")
+                .setMessage("Bạn có chắc chắn muốn đăng xuất?")
+                .setPositiveButton("Đăng xuất", (dialog, which) -> {
+                    logout();
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void logout() {
+        // Đăng xuất Firebase
+        mAuth.signOut();
+
+        Toast.makeText(this, "Đã đăng xuất", Toast.LENGTH_SHORT).show();
+
+        // Chuyển về màn hình đăng nhập
+        Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 }
